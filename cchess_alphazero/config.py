@@ -3,10 +3,12 @@ import getpass
 
 def _project_dir():
     d = os.path.dirname
+    print(f"项目路径: {d(d(os.path.abspath(__file__)))}")
     return d(d(os.path.abspath(__file__)))
 
 
 def _data_dir():
+    print(f"_data_dir文件路径 {os.path.join(_project_dir(), 'data')}")
     return os.path.join(_project_dir(), "data")
 
 class Config:

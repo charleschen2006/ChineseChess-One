@@ -14,6 +14,7 @@ BG_STYLE_LIST = ['CANVAS', 'DROPS', 'GREEN', 'QIANHONG', 'SHEET', 'SKELETON', 'W
 RANDOM_LIST = ['none', 'small', 'medium', 'large']
 
 def create_parser():
+    """解析cmd指令模块"""
     parser = argparse.ArgumentParser()
     parser.add_argument("cmd", help="what to do", choices=CMD_LIST)
     parser.add_argument("--new", help="run from new best model", action="store_true")
@@ -33,6 +34,7 @@ def create_parser():
     return parser
 
 def setup(config: Config, args):
+    """解析游戏模式指令"""
     config.opts.new = args.new
     if args.total_step is not None:
         config.trainer.start_total_steps = args.total_step
@@ -50,20 +52,24 @@ def setup(config: Config, args):
         setup_logger(config.resource.sl_log_path)
 
 def start():
-    parser = create_parser()
-    args = parser.parse_args()
+    parser = create_parser()   #引入cmd指令解析
+    args = parser.parse_args() # 引入游戏模式指令解析
     config_type = args.type
 
-    config = Config(config_type=config_type)
+    print(f"游戏指令初始化, config_type {config_type}")
+    config = Config(config_type=config_type) #导入游戏模式指令
     setup(config, args)
 
     logger.info('Config type: %s' % (config_type))
     config.opts.piece_style = args.piece_style
     config.opts.bg_style = args.bg_style
     config.internet.distributed = args.distributed
+    print(f"游戏指令初始化, distributed {args.distributed}")
 
     # use multiple GPU
     gpus = config.opts.device_list.split(',')
+    print(f"gpus: {gpus}")
+    print(f"args.cmd: {args.cmd}")
     if len(gpus) > 1:
         config.opts.use_multiple_gpus = True
         config.opts.gpu_num = len(gpus)
@@ -82,9 +88,11 @@ def start():
         from cchess_alphazero.worker import optimize
         return optimize.start(config)
     elif args.cmd == 'play':
+        print(f"args.cli: {args.cli}")
         if args.cli:
             import cchess_alphazero.play_games.play_cli as play
         else:
+            print(f"导入cchess_alphazero.play_games.play.py")
             from cchess_alphazero.play_games import play
         config.opts.light = False
         pwhc = PlayWithHumanConfig()

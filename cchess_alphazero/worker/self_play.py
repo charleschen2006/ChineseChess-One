@@ -106,7 +106,10 @@ class SelfPlayWorker:
 
         self.player = CChessPlayer(self.config, search_tree=search_tree, pipes=pipes, 
                                     enable_resign=enable_resign, debugging=False, use_history=self.use_history)
-
+        """
+        INIT_STATE = 'rkemsmekr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RKEMSMEKR'
+        设置棋盘初始状态
+        """
         state = senv.INIT_STATE
         history = [state]
         # policys = [] 
@@ -136,7 +139,7 @@ class SelfPlayWorker:
                 state, no_eat = senv.new_step(state, action)
             except Exception as e:
                 logger.error(f"{e}, no_act = {no_act}, policy = {policy}")
-                game_over = True
+                game_over = True #本局结束
                 value = 0
                 break
             turns += 1
@@ -147,14 +150,14 @@ class SelfPlayWorker:
             history.append(state)
 
             if no_eat_count >= 120 or turns / 2 >= self.config.play.max_game_length:
-                game_over = True
+                game_over = True #本局结束
                 value = 0
             else:
                 game_over, value, final_move, check = senv.done(state, need_check=True)
                 if not game_over:
                     if not senv.has_attack_chessman(state):
                         logger.info(f"双方无进攻子力，作和。state = {state}")
-                        game_over = True
+                        game_over = True #本局结束
                         value = 0
                 increase_temp = False
                 no_act = []
@@ -192,7 +195,7 @@ class SelfPlayWorker:
 
         v = value
         if turns < 10:
-            if random() > 0.9:
+            if random() > 0.9: #当在10步以下时， 有90%的概率保存对局记录
                 store = True
             else:
                 store = False
@@ -224,7 +227,7 @@ class SelfPlayWorker:
         filename = rc.play_data_filename_tmpl % game_id
         path = os.path.join(rc.play_data_dir, filename)
         logger.info(f"Process {self.pid} save play data to {path}")
-        write_game_data_to_file(path, self.buffer)
+        write_game_data_to_file(path, self.buffer)  #将play data写入本地数据库
         if self.config.internet.distributed:
             upload_worker = Thread(target=self.upload_play_data, args=(path, filename), name="upload_worker")
             upload_worker.daemon = True
