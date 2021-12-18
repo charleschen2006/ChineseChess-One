@@ -61,7 +61,7 @@ class CChessModel:
         在class ModelConfig中配置 
         self.res_layer_num = 7
         """
-        logger.debug(f"构建{self.res_layer_num}层残差网络 ~")
+        # logger.debug(f"构建{self.res_layer_num}层残差网络 ~")
         for i in range(mc.res_layer_num):
             x = self._build_residual_block(x, i + 1)
         #保存残差层结果
