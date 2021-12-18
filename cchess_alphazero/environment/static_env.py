@@ -1,15 +1,18 @@
 import numpy as np
 
+
 from cchess_alphazero.environment.light_env.common import *
 from cchess_alphazero.environment.lookup_tables import Winner, Fen_2_Idx, flip_move
 from logging import getLogger
 
 logger = getLogger(__name__)
-
+#设置初始状态 字母代表子， 数字代表空位, 大小写字母区分红黑
 INIT_STATE = 'rkemsmekr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RKEMSMEKR'
 
 BOARD_HEIGHT = 10
 BOARD_WIDTH = 9
+
+
 
 def done(state, turns=-1, need_check=False):
     if 's' not in state:
@@ -76,14 +79,17 @@ def done(state, turns=-1, need_check=False):
     else:
         return (winner is not None, v, final_move)
 
+#步--状态, 行动
+
 def step(state, action):
     board = state_to_board(state)
     if board[int(action[1])][int(action[0])] == '.':
         raise ValueError(f"No chessman in {action}, state = {state}")
-    board[int(action[3])][int(action[2])] = board[int(action[1])][int(action[0])]
+    board[int(action[3])][int(action[2])] = board[int(action[1])][int(action[0])] #将行动转化为棋盘状态变化
     board[int(action[1])][int(action[0])] = '.'
     state = board_to_state(board)
-    return fliped_state(state)
+    return fliped_state(state)  #切换(红黑-字母大小写切换)
+
 
 def new_step(state, action):
     no_eat = True
@@ -114,8 +120,11 @@ def evaluate(state):
     v = ans / tot
     return np.tanh(v * 3)
 
+
 def state_to_board(state):
+    #state值转化为棋盘状态board
     board = [['.' for col in range(BOARD_WIDTH)] for row in range(BOARD_HEIGHT)]
+    
     x = 0
     y = 9
     for k in range(0, len(state)):
@@ -132,30 +141,51 @@ def state_to_board(state):
         else:
             board[y][x] = swapcase(ch, s2b=True)
             x = x + 1
+    # print(f"board: {board}")
     return board
+
 
 def state_to_planes(state):
     '''
-    e.g.
+    e.g.+
         rkemsmekr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RKEMSMEKR
         rkemsmek1/8r/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RKEMSMEKR
     '''
     planes = np.zeros(shape=(14, 10, 9), dtype=np.float32)
-    rows = state.split('/')
+    rows = state.split('/') #按照/号进行拆分 rows[0]=rkemsmekr 车马象仕将仕象马车 row[1]=9 row[2]=1c5c1
 
     for i in range(len(rows)):
         row = rows[i]
         j = 0
         for letter in row:
-            if letter.isalpha():
-                # 0 ~ 7 : upper, 7 ~ 14: lower
+            if letter.isalpha(): # 判断字符串是否只由字母组成 
+            #Fen_2_Idx = {
+            #     'p': 0,  #兵
+            #     'P': 0,
+            #     'c': 1,  #跑
+            #     'C': 1,
+            #     'r': 2,  #车
+            #     'R': 2,
+            #     'k': 3,  #马
+            #     'K': 3,
+            #     'e': 4,  #象
+            #     'E': 4,
+            #     'm': 5,  #仕
+            #     'M': 5,
+            #     's': 6,  #将
+            #     'S': 6
+            # }
+                # 0 ~ 7 : upper, 7 ~ 14: lower (letter.islower() 判断是否是小写字母:是为1， 否为0)
+                # 当letter = 'c'时， planes[8][i][j]
                 planes[Fen_2_Idx[letter] + int(letter.islower()) * 7][i][j] = 1
                 j += 1
             else:
                 j += int(letter)
+    #plane是一个三维数组,第一维表示棋子种类, 第二和第三位表示棋子位置
     return planes
 
-def state_history_to_planes(state, history):
+
+def state_history_to_planes(state, history): #标准中国象棋接口协议， 历史记录转化为棋盘状态
     '''
     e.g.
         rkemsmekr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RKEMSMEKR
@@ -193,6 +223,7 @@ def state_history_to_planes(state, history):
                     j += int(letter)
     return planes
 
+
 def board_to_state(board):
     c = 0
     fen = ''
@@ -212,6 +243,7 @@ def board_to_state(board):
             fen = fen + '/'
     return fen
 
+
 def state_to_fen(state, turns):
     fen = ''
     state = "".join([state_to_board_dict[s] if s.isalpha() else s for s in state])
@@ -221,11 +253,13 @@ def state_to_fen(state, turns):
     else:
         return flip_fen(fen)
 
+
 def fen_to_state(fen):
     foo = fen.split(' ')
     position = foo[0]
     state = "".join([replace_dict[s] if s.isalpha() else s for s in position])
     return state
+
 
 def flip_fen(fen):
     foo = fen.split(' ')
@@ -242,6 +276,7 @@ def flip_fen(fen):
         + " " + foo[2] \
         + " " + foo[3] + " " + foo[4] + " " + foo[5]
 
+
 def fliped_state(state):
     rows = state.split('/')
     def swapcase(a):
@@ -253,7 +288,8 @@ def fliped_state(state):
 
     return "/".join([swapall(reversed(row)) for row in reversed(rows)])
 
-def get_legal_moves(state, board=None):
+
+def get_legal_moves(state, board=None): #获取合法的走法
     board = board if board is not None else state_to_board(state)
     legal_moves = []
     for y in range(BOARD_HEIGHT):
@@ -267,7 +303,7 @@ def get_legal_moves(state, board=None):
                     y_ = y + d[1]
                     if not can_move(board, x_, y_):
                         continue
-                    elif ch == 'p' and y < 5 and x_ != x:  # for red pawn
+                    elif ch == 'p' and y < 5 and x_ != x:  # for red pawn 红兵未过河
                         continue
                     elif ch == 'n' or ch == 'b' : # for knight and bishop
                         if board[y+int(d[1]/2)][x+int(d[0]/2)] != '.':
@@ -320,6 +356,7 @@ def get_legal_moves(state, board=None):
                         legal_moves.append(move_to_str(x, y, x, u_))
     return legal_moves
 
+
 def can_move(board, x, y): # basically check the move
     if x < 0 or x > BOARD_WIDTH-1:
         return False
@@ -328,6 +365,7 @@ def can_move(board, x, y): # basically check the move
     if board[y][x].islower():
         return False
     return True
+
 
 def x_board_from(board, x, y):
     l = x-1
@@ -338,6 +376,7 @@ def x_board_from(board, x, y):
         r = r+1
     return l, r
 
+
 def y_board_from(board, x, y):
     d = y-1
     u = y+1
@@ -346,6 +385,7 @@ def y_board_from(board, x, y):
     while u < BOARD_HEIGHT and board[u][x] == '.':
         u = u+1
     return d, u
+
 
 def swapcase(a, s2b=False):
     if a.isalpha():
@@ -356,11 +396,13 @@ def swapcase(a, s2b=False):
         return a.lower() if a.isupper() else a.upper()
     return a
 
+
 def render(state):
     board = state_to_board(state)
     for i in range(9, -1, -1):
         logger.debug(board[i])
         # print(board[i])
+
 
 def init(pos):
     board = [['.' for col in range(BOARD_WIDTH)] for row in range(BOARD_HEIGHT)]
@@ -372,20 +414,24 @@ def init(pos):
             board[y][x] = piece
     return board_to_state(board)
 
+
 def parse_onegreen_move(move):
     x0, y0 = int(move[0]), 9 - int(move[1])
     x1, y1 = int(move[2]), 9 - int(move[3])
     return str(x0) + str(y0) + str(x1) + str(y1)
+
 
 def parse_ucci_move(move):
     x0, x1 = ord(move[0]) - ord('a'), ord(move[2]) - ord('a')
     move = str(x0) + move[1] + str(x1) + move[3]
     return move
 
+
 def to_uci_move(action):
     x0, x1 = chr(ord('a') + int(action[0])), chr(ord('a') + int(action[2]))
     move = x0 + action[1] + x1 + action[3]
     return move
+
 
 def will_check_or_catch(ori_state, action):
     '''
@@ -420,6 +466,7 @@ def will_check_or_catch(ori_state, action):
     else:
         return False
 
+
 def get_catch_list(state, moves=None):
     catch_list = set()
     if not moves:
@@ -452,6 +499,7 @@ def get_catch_list(state, moves=None):
                 # print(f"Catch: mov = {mov}, chessman = {black_board[i][j]}")
                 catch_list.add((black_board[i][j], i, j, black_board[m][n], m, n))
     return catch_list
+
 
 def be_catched(state, mov):
     i = int(mov[1])

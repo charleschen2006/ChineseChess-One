@@ -60,8 +60,11 @@ class PlayWithHuman:
             self.chessman_h += 1
 
     def load_model(self):
+        print(f"加载模型")
         self.model = CChessModel(self.config)
+        print(f"加载的模型为:{self.model}")
         if self.config.opts.new or not load_best_model_weight(self.model):
+            print(f"opts.new or not best model {self.config.opts.new}")
             self.model.build()
 
     def init_screen(self):
@@ -96,6 +99,7 @@ class PlayWithHuman:
         return screen, board_background, widget_background
 
     def start(self, human_first=True):
+        print(f"play human_first=True")
         self.env.reset()
         self.load_model()
         self.pipe = self.model.get_pipes()
@@ -229,10 +233,27 @@ class PlayWithHuman:
                 self.nn_value = v
                 logger.info("MCTS results:")
                 self.mcts_moves = {}
+
+                #--------------------调整走法逻辑------------
+                best_value = -99999
+                highest_prior = 0
                 for move, action_state in self.ai.search_results.items():
                     move_cn = self.env.board.make_single_record(int(move[0]), int(move[1]), int(move[2]), int(move[3]))
-                    logger.info(f"move: {move_cn}-{move}, visit count: {action_state[0]}, Q_value: {action_state[1]:.3f}, Prior: {action_state[2]:.3f}")
+                    #------修改电脑决策逻辑-----
+                    logger.info(f"move: {move_cn}-{move}, visit count: {action_state[0]}, Q_value: {action_state[1]:.5f}, Prior: {action_state[2]:.5f}")
                     self.mcts_moves[move_cn] = action_state
+                    #当policy分值大于0时, 取最大分值行动
+                    if action_state[1]>best_value and action_state[1]>=0:
+                        best_value = action_state[1]
+                        action = flip_move(move)  # 电脑执黑, 需要翻转
+                    #当所有policy分值小于0时
+                    elif action_state[1] <=0 and best_value<=0:
+                        if highest_prior < action_state[2]:
+                            highest_prior = action_state[2]
+                            action = flip_move(move) # 电脑执黑, 需要翻转
+                    else:
+                        continue
+                
                 x0, y0, x1, y1 = int(action[0]), int(action[1]), int(action[2]), int(action[3])
                 chessman_sprite = select_sprite_from_group(self.chessmans, x0, y0)
                 sprite_dest = select_sprite_from_group(self.chessmans, x1, y1)

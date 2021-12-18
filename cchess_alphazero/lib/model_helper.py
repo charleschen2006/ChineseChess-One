@@ -10,6 +10,7 @@ def load_best_model_weight(model):
     :param cchess_alphazero.agent.model.CChessModel model:
     :return:
     """
+    print(f"加载权重文件: {model.config.resource.model_best_config_path}, {model.config.resource.model_best_weight_path}")
     return model.load(model.config.resource.model_best_config_path, model.config.resource.model_best_weight_path)
 
 def load_best_model_weight_from_internet(model):
@@ -17,6 +18,7 @@ def load_best_model_weight_from_internet(model):
     :param cchess_alphazero.agent.model.CChessModel model:
     :return:
     """
+    print(f"从网络加载模型: {model.config.internet.download_url}")
     from cchess_alphazero.lib.web_helper import download_file
     logger.info(f"download model from remote server")
     download_file(model.config.internet.download_url, model.config.resource.model_best_weight_path)
@@ -29,6 +31,7 @@ def save_as_best_model(model):
     :param cchess_alphazero.agent.model.CChessModel model:
     :return:
     """
+    print(f"保存best_model到本地")
     return model.save(model.config.resource.model_best_config_path, model.config.resource.model_best_weight_path)
 
 

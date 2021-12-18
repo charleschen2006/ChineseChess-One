@@ -2,7 +2,7 @@ class EvaluateConfig:
     def __init__(self):
         self.vram_frac = 1.0
         self.game_num = 2
-        self.simulation_num_per_move = 20 # before 200
+        self.simulation_num_per_move = 20 # before 200 简化搜索过程
         self.thinking_loop = 1
         self.c_puct = 1 # lower  = prefer mean action value
         self.tau_decay_rate = 0
@@ -26,7 +26,7 @@ class PlayDataConfig:
     def __init__(self):
         self.sl_nb_game_in_file = 250
         self.nb_game_in_file = 1
-        self.max_file_num = 10
+        self.max_file_num = 10  #配置最大保存文件数
         self.nb_game_save_record = 1
 
 

@@ -3,6 +3,5 @@
 data/*
 logs/*
 Icon*
-.vscode
 *.icloud
 node_modules

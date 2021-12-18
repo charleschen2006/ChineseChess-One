@@ -32,8 +32,8 @@ class PlayDataConfig:
 
 class PlayConfig:
     def __init__(self):
-        self.max_processes = 8     # tune this to your cpu cores
-        self.search_threads = 10    # increase this will be faster but with weaker performance
+        self.max_processes = 10     # tune this to your cpu cores
+        self.search_threads = 30    # increase this will be faster but with weaker performance
         self.vram_frac = 1.0
         self.simulation_num_per_move = 800
         self.thinking_loop = 1
@@ -60,6 +60,7 @@ class TrainerConfig:
         self.batch_size = 1024
         self.epoch_to_checkpoint = 1
         self.dataset_size = 90000000
+        # self.start_total_steps = 0
         self.start_total_steps = 0
         self.save_model_steps = 25
         self.load_data_steps = 100

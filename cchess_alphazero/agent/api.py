@@ -24,29 +24,39 @@ class CChessModelAPI:
 
     def start(self, need_reload=True):
         self.need_reload = need_reload
+        #构造一个predict batch worker线程（伪线程）
         prediction_worker = Thread(target=self.predict_batch_worker, name="prediction_worker")
         prediction_worker.daemon = True
         prediction_worker.start()
 
     def get_pipe(self, need_reload=True):
-        me, you = Pipe()
+        #multiprocessing.Pipe([duplex]) 方法返回2个连接对象(conn1, conn2),代表管道的两端,默认duplex为True，
+        # 是双向通信。如果duplex为False，则conn1只能用来接收消息，conn2只能用来发送消息。
+        me, you = Pipe()  #def Pipe(duplex: bool = ...) -> tuple[connection.Connection, connection.Connection]
         self.pipes.append(me)
+        #每次都需要重新加载
         self.need_reload = need_reload
         return you
 
     def predict_batch_worker(self):
+        #如果配置为从网络获取模型
         if self.config.internet.distributed and self.need_reload:
             self.try_reload_model_from_internet()
         last_model_check_time = time()
+        print(f"last_model_check_time: {last_model_check_time}")
         while not self.done:
+            #600秒超时加载
             if last_model_check_time + 600 < time() and self.need_reload:
+                print(f"self.try_reload_model(): {last_model_check_time}")
                 self.try_reload_model()
                 last_model_check_time = time()
             ready = connection.wait(self.pipes, timeout=0.001)
             if not ready:
+                #print(f"not ready")
                 continue
             data, result_pipes, data_len = [], [], []
             for pipe in ready:
+                #print(f"ready")
                 while pipe.poll():
                     try:
                         tmp = pipe.recv()
@@ -60,8 +70,13 @@ class CChessModelAPI:
             if not data:
                 continue
             data = np.asarray(data, dtype=np.float32)
-            with self.agent_model.graph.as_default():
-                policy_ary, value_ary = self.agent_model.model.predict_on_batch(data)
+            # print(f"data: {data}") #第一维是棋子种类，第二三维是该种类的棋子的行列
+            # print(f"result_pipes: {result_pipes}")
+            # print(f"data_len: {data_len}")
+            # with self.agent_model.graph.as_default():
+            #     policy_ary, value_ary = self.agent_model.model.predict_on_batch(data) #使用graph图运行时会报错
+            
+            policy_ary, value_ary = self.agent_model.model.predict_on_batch(data)
             buf = []
             k, i = 0, 0
             for p, v in zip(policy_ary, value_ary):

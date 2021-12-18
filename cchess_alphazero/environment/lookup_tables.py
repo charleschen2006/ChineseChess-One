@@ -1,5 +1,7 @@
 #-*- coding:utf-8 -*-
-
+"""
+象棋环境定义
+"""
 from cchess_alphazero.environment.chessman import *
 from enum import Enum
 import numpy as np
@@ -61,8 +63,8 @@ def flip_action_labels(labels):
 
 def create_action_labels():
     labels_array = []   # [col_src,row_src,col_dst,row_dst]
-    numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] # row
-    letters = ['0', '1', '2', '3', '4', '5', '6', '7', '8'] # col
+    numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] # row 棋盘行编号
+    letters = ['0', '1', '2', '3', '4', '5', '6', '7', '8']      # col 棋盘列编号
 
     for n1 in range(10):
         for l1 in range(9):
@@ -75,7 +77,7 @@ def create_action_labels():
                     move = letters[l1] + numbers[n1] + letters[l2] + numbers[n2]
                     labels_array.append(move)
 
-    #for red mandarin
+    #for red mandarin：  “3041”士3列0行走4列1行
     labels_array.append('3041')
     labels_array.append('5041')
     labels_array.append('3241')
@@ -84,6 +86,7 @@ def create_action_labels():
     labels_array.append('4150')
     labels_array.append('4132')
     labels_array.append('4152')
+
     # for black mandarin
     labels_array.append('3948')
     labels_array.append('5948')
@@ -94,7 +97,7 @@ def create_action_labels():
     labels_array.append('4837')
     labels_array.append('4857')
 
-    #for red elephant
+    #for red elephant  走法 2002 表示： 从第2列第0行走到第0列第2行
     labels_array.append('2002')
     labels_array.append('2042')
     labels_array.append('6042')
@@ -111,6 +114,7 @@ def create_action_labels():
     labels_array.append('4224')
     labels_array.append('4264')
     labels_array.append('8264')
+
     # for black elephant
     labels_array.append('2907')
     labels_array.append('2947')

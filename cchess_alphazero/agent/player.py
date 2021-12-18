@@ -11,6 +11,9 @@ from cchess_alphazero.environment.lookup_tables import Winner, ActionLabelsRed, 
 from time import time, sleep
 import gc 
 import sys
+import random
+
+import cython
 
 logger = getLogger(__name__)
 
@@ -35,12 +38,12 @@ class ActionState:
 class CChessPlayer:
     def __init__(self, config: Config, search_tree=None, pipes=None, play_config=None, 
             enable_resign=False, debugging=False, uci=False, use_history=False, side=0):
-        self.config = config
-        self.play_config = play_config or self.config.play
+        self.config = config  #配置文件
+        self.play_config = play_config or self.config.play #游戏配置
         self.labels_n = len(ActionLabelsRed)
         self.labels = ActionLabelsRed
         self.move_lookup = {move: i for move, i in zip(self.labels, range(self.labels_n))}
-        self.pipe = pipes                   # pipes that used to communicate with CChessModelAPI thread
+        self.pipe = pipes                   # pipes that used to communicate with CChessModelAPI thread, 用于与棋盘交互
         self.node_lock = defaultdict(Lock)  # key: state key, value: Lock of that state
         self.use_history = use_history
         self.increase_temp = False
@@ -55,10 +58,12 @@ class CChessPlayer:
         self.enable_resign = enable_resign
         self.debugging = debugging
 
+
         self.search_results = {}        # for debug
         self.debug = {}
         self.side = side
 
+        #锁定义
         self.s_lock = Lock()
         self.run_lock = Lock()
         self.q_lock = Lock()            # queue lock
@@ -105,13 +110,13 @@ class CChessPlayer:
             value = 0
         return self.labels[my_action], value, self.done_tasks // 100
 
-    def sender(self):
+    def sender(self):  #消息发送者
         '''
         send planes to neural network for prediction
         '''
         limit = 256                 # max prediction queue size
         while not self.job_done:
-            self.run_lock.acquire()
+            self.run_lock.acquire()  #获取行动锁
             with self.q_lock:
                 l = min(limit, len(self.buffer_history))
                 if l > 0:
@@ -119,10 +124,10 @@ class CChessPlayer:
                     # logger.debug(f"send queue size = {l}")
                     self.pipe.send(t_data)
                 else:
-                    self.run_lock.release()
+                    self.run_lock.release()  #释放行动锁
                     sleep(0.001)
 
-    def receiver(self):
+    def receiver(self):  #消息接受者
         '''
         receive policy and value from neural network
         '''
@@ -142,6 +147,7 @@ class CChessPlayer:
                 self.buffer_history = self.buffer_history[k:]
             self.run_lock.release()
 
+    #-> str 返回类型为string  #AI自我博弈时使用到的执行逻辑块~~ 
     def action(self, state, turns, no_act=None, depth=None, infinite=False, hist=None, increase_temp=False) -> str:
         self.all_done.acquire(True)
         self.root_state = state
@@ -161,12 +167,13 @@ class CChessPlayer:
             self.num_task = depth - done if depth > done else 0
         if infinite:
             self.num_task = 100000
+
         depth = 0
         start_time = time()
-        # MCTS search
+        # MCTS 蒙特卡洛数搜索, 开启多线程搜索
         if self.num_task > 0:
             all_tasks = self.num_task
-            batch = all_tasks // self.config.play.search_threads
+            batch = all_tasks // self.config.play.search_threads  #设置批次数 search_threads=40
             if all_tasks % self.config.play.search_threads != 0:
                 batch += 1
             # logger.debug(f"all_task = {self.num_task}, batch = {batch}")
@@ -191,8 +198,10 @@ class CChessPlayer:
         if no_act is not None:
             for act in no_act:
                 policy[self.move_lookup[act]] = 0
-
+        #随机选取行动?? 从全部的行动空间里面按照, apply_temperature的返回数组中的行动权重,来分配概率选取行动
+        # print(f"选取行动空间: {len(range(self.labels_n))}, 选取衰减系数: {len(self.apply_temperature(policy, turns))}, sum: {sum(self.apply_temperature(policy, turns))}")
         my_action = int(np.random.choice(range(self.labels_n), p=self.apply_temperature(policy, turns)))
+        # print(f"my_action: {my_action}")
         return self.labels[my_action], list(policy)
 
     def MCTS_search(self, state, history=[], is_root_node=False, real_hist=None) -> float:
@@ -202,16 +211,16 @@ class CChessPlayer:
         while True:
             # logger.debug(f"start MCTS, state = {state}, history = {history}")
             game_over, v, _ = senv.done(state)
-            if game_over:
+            if game_over: #如果游戏结束， 则将v值乘2 ， v值为1， 为红方胜利， v值为-1则黑方胜利， v值为0， 则和局
                 v = v * 2
-                self.executor.submit(self.update_tree, None, v, history)
+                self.executor.submit(self.update_tree, None, v, history)  #进程submit结束搜索
                 break
 
             with self.node_lock[state]:
-                if state not in self.tree:
+                if state not in self.tree:  #当前state不在树节点中时
                     # Expand and Evaluate
-                    self.tree[state].sum_n = 1
-                    self.tree[state].legal_moves = senv.get_legal_moves(state)
+                    self.tree[state].sum_n = 1 #访问次数设置为1
+                    self.tree[state].legal_moves = senv.get_legal_moves(state) #获取当前状态的合法走法
                     self.tree[state].waiting = True
                     # logger.debug(f"expand_and_evaluate {state}, sum_n = {self.tree[state].sum_n}, history = {history}")
                     if is_root_node and real_hist:
@@ -244,7 +253,7 @@ class CChessPlayer:
 
                 virtual_loss = self.config.play.virtual_loss
                 self.tree[state].sum_n += 1
-                # logger.debug(f"node = {state}, sum_n = {node.sum_n}")
+                # logger.info(f"node = {state}, sum_n = {node.sum_n}")
                 
                 action_state = self.tree[state].a[sel_action]
                 action_state.n += virtual_loss
@@ -257,7 +266,7 @@ class CChessPlayer:
                 history.append(sel_action)
                 state = senv.step(state, sel_action)
                 history.append(state)
-                # logger.debug(f"step action {sel_action}, next = {action_state.next}")
+                # logger.info(f"step action {sel_action}, next = {action_state.next}")
 
     def select_action_q_and_u(self, state, is_root_node) -> str:
         '''
@@ -286,8 +295,8 @@ class CChessPlayer:
         # sqrt of sum(N(s, b); for all b)
         xx_ = np.sqrt(node.sum_n + 1)  
 
-        e = self.play_config.noise_eps
-        c_puct = self.play_config.c_puct
+        e = self.play_config.noise_eps #0.15
+        c_puct = self.play_config.c_puct  #探索利用率 self.c_puct = 1.5
         dir_alpha = self.play_config.dirichlet_alpha
 
         best_score = -99999999
@@ -303,6 +312,7 @@ class CChessPlayer:
             if is_root_node:
                 p_ = (1 - e) * p_ + e * np.random.dirichlet(dir_alpha * np.ones(move_counts))[0]
             # Q + U
+            # 蒙特卡洛树搜索中的探索利用算法, 此处算法似乎有问题
             score = action_state.q + c_puct * p_ * xx_ / (1 + action_state.n)
             # if score > 0.1 and is_root_node:
             #     logger.debug(f"U+Q = {score:.2f}, move = {mov}, q = {action_state.q:.2f}")
@@ -316,10 +326,10 @@ class CChessPlayer:
         if best_action == None:
             logger.error(f"Best action is None, legal_moves = {legal_moves}, best_score = {best_score}")
         # if is_root_node:
-        #     logger.debug(f"selected action = {best_action}, with U + Q = {best_score}")
+        #     logger.info(f"selected action = {best_action}, with U + Q = {best_score}")
         return best_action
 
-    def expand_and_evaluate(self, state, history, real_hist=None):
+    def expand_and_evaluate(self, state, history, real_hist=None):  #拓展和评估
         '''
         Evaluate the state, return its policy and value computed by neural network
         '''
@@ -338,7 +348,7 @@ class CChessPlayer:
             # logger.debug(f"EAE append buffer_history history = {history}")
 
     def update_tree(self, p, v, history):
-        state = history.pop()
+        state = history.pop() #从状态历史中获取最近一个状态
 
         if p is not None:
             with self.node_lock[state]:
@@ -376,6 +386,7 @@ class CChessPlayer:
         '''
         calculate π(a|s0) according to the visit count
         '''
+        #计算策略值, 以及控制AI自我训练逻辑
         node = self.tree[state]
         policy = np.zeros(self.labels_n)
         max_q_value = -100
@@ -401,8 +412,11 @@ class CChessPlayer:
                 mov = ActionLabelsRed[index]
                 if mov in debug_result:
                     self.search_results[mov] = debug_result[mov]
-
+        print(f"sum policy: {np.sum(policy)}")
         policy /= np.sum(policy)
+        # indexs = np.argwhere(policy > 0)
+        # for i in indexs:
+        #     print(f"indexs: {i}")
         return policy, False
 
     def print_depth_info(self, state, turns, start_time, value, no_act):
@@ -449,24 +463,45 @@ class CChessPlayer:
         logger.debug(output)
         sys.stdout.flush()
         
-
+    #应用衰减机制, 搜索次数越多, 对应的value值越低
     def apply_temperature(self, policy, turn) -> np.ndarray:
-        if turn < 30 and self.play_config.tau_decay_rate != 0:
-            tau = tau = np.power(self.play_config.tau_decay_rate, turn + 1)
+        
+        ## -------调整算法逻辑----------
+        tau = 0
+        #调整开局逻辑
+        if turn < 5 and random.randint(1,5)<2: #有80%的概率执行已有数据进行
+            print(f"第{turn}轮, 随机步骤~")
+            tau = 0  #调整开局逻辑结束
+        elif turn < 10 and random.randint(1,5)<5: #有20%的概率执行已有数据进行:
+            print(f"第{turn}轮, 随机步骤~")
+            tau = 0  #调整开局逻辑结束
         else:
-            tau = 0
-        if tau < 0.1 or (turn >= 4 and self.config.opts.evaluate):
+            
+            #当在30局以下时且衰减率不为0时(当前配置为0.95)
+            if turn < 30 and self.play_config.tau_decay_rate != 0:
+                # tau = tau = np.power(self.play_config.tau_decay_rate, turn + 1)  
+                tau = np.power(self.play_config.tau_decay_rate, turn + 1) #使用指数函数根据轮次数进行衰减
+
+        if tau < 0.1 or (turn >= 4 and self.config.opts.evaluate): #tau_decay_rate= 0.95, 在第45轮后tau<0.1
+             print(f"第{turn}轮, tau值:{tau}")
              tau = 0
         if self.increase_temp and not self.config.opts.evaluate:
             tau = 0.5
         if tau == 0:
+            print(f"第{turn}轮, 选择最优步骤~")
             action = np.argmax(policy)
+            print(f"max action index: {action}")
             ret = np.zeros(self.labels_n)
             ret[action] = 1.0
             return ret
         else:
+            # indexs = np.argwhere(policy > 0)
+            # for i in indexs:
+            #     print(f"indexs: {i}")
+            print(f"第{turn}轮, 策略步骤~")
             ret = np.power(policy, 1 / tau)
             ret /= np.sum(ret)
+            print(f"ret: {ret}")
             return ret
 
 

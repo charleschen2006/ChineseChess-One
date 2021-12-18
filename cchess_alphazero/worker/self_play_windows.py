@@ -59,6 +59,8 @@ class SelfPlayWorker:
         job_done.acquire(True)
         logger.info(f"自我博弈开始，请耐心等待....")
 
+        #增加训练控制符
+        exceed_max_games = False
         with ProcessPoolExecutor(max_workers=self.config.play.max_processes) as executor:
             game_idx = 0
             while True:
@@ -80,14 +82,17 @@ class SelfPlayWorker:
                 logger.debug(f"对局完成：对局ID {game_idx} 耗时{(end_time - start_time):.1f} 秒, "
                          f"{turns / 2}回合, 胜者 = {value:.2f} (1 = 红, -1 = 黑, 0 = 和)")
                 self.buffer += data
-
+                print(f"删除文件策略: {self.config.play_data.nb_game_in_file}, {game_idx},  {game_idx % self.config.play_data.nb_game_in_file}")
                 if (game_idx % self.config.play_data.nb_game_in_file) == 0:
                     self.flush_buffer()
-                    self.remove_play_data(all=False) # remove old data
+                    exceed_max_games=  self.remove_play_data(all=False) # remove old data
                 ff = executor.submit(self_play_buffer, self.config, self.cur_pipes, self.use_history)
                 ff.add_done_callback(recall_fn)
                 futures.append(ff) # Keep it going
                 thr_free.release()
+                if exceed_max_games: #超出最大play记录数设置时开始进行训练
+                    from cchess_alphazero.worker import optimize
+                    optimize.start(self.config)
 
         if len(data) > 0:
             self.flush_buffer()
@@ -103,6 +108,7 @@ class SelfPlayWorker:
             config_path = os.path.join(self.config.resource.model_dir, config_file)
         try:
             if not load_model_weight(model, config_path, weight_path):
+                print(f"weight文件不存在, 重新建模")
                 model.build()
                 save_as_best_model(model)
                 use_history = True
@@ -129,9 +135,17 @@ class SelfPlayWorker:
             for path in files:
                 os.remove(path)
         else:
+            print(f"max_file_num: {self.config.play_data.max_file_num}, files nums: {len(files)}")
+            #修改了此处的逻辑， 但是由于线程冲突， 发生异常。 
             while len(files) > self.config.play_data.max_file_num:
-                os.remove(files[0])
-                del files[0]
+                
+                # from cchess_alphazero.worker import optimize
+                # optimize.start(self.config)
+                return True   #返回超出最大长度标识
+            ##--------------------------##    
+            # while len(files) > self.config.play_data.max_file_num:
+            #     os.remove(files[0])
+            #     del files[0]
 
     def upload_play_data(self, path, filename):
         digest = CChessModel.fetch_digest(self.config.resource.model_best_weight_path)
@@ -168,7 +182,7 @@ def self_play_buffer(config, cur, use_history=False) -> (tuple, list):
     state = senv.INIT_STATE
     history = [state]
     # policys = [] 
-    value = 0
+    value = 0  #value: 0 为和局, 1为红方胜, -1为黑方胜 
     turns = 0
     game_over = False
     final_move = None
@@ -180,6 +194,7 @@ def self_play_buffer(config, cur, use_history=False) -> (tuple, list):
     while not game_over:
         start_time = time()
         action, policy = player.action(state, turns, no_act, increase_temp=increase_temp)
+        print(f"action: {action}")
         end_time = time()
         if action is None:
             print(f"{turns % 2} (0 = 红; 1 = 黑) 投降了!")
@@ -202,7 +217,7 @@ def self_play_buffer(config, cur, use_history=False) -> (tuple, list):
             no_eat_count = 0
         history.append(state)
 
-        if no_eat_count >= 120 or turns / 2 >= config.play.max_game_length:
+        if no_eat_count >= 120 or turns / 2 >= config.play.max_game_length: #未吃子，跑了120轮则判定和局
             game_over = True
             value = 0
         else:

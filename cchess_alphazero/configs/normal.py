@@ -10,7 +10,7 @@ class EvaluateConfig:
         self.max_game_length = 200
         self.max_processes = 10
         self.search_threads = 8
-        self.next_generation_replace_rate = 0.55
+        self.next_generation_replace_rate = 0.55  #下一代替换率
 
     def update_play_config(self, pc):
         pc.simulation_num_per_move = self.simulation_num_per_move
@@ -26,15 +26,15 @@ class EvaluateConfig:
 class PlayDataConfig:
     def __init__(self):
         self.sl_nb_game_in_file = 250
-        self.nb_game_in_file = 5
-        self.max_file_num = 300
+        self.nb_game_in_file = 50
+        self.max_file_num = 3000 #保存的最大对局文件数目
         self.nb_game_save_record = 1
 
 
 class PlayConfig:
     def __init__(self):
-        self.max_processes = 10
-        self.search_threads = 40
+        self.max_processes = 10 #最大文件保存数目？不是
+        self.search_threads = 40  #查询线程数目
         self.vram_frac = 1.0
         self.simulation_num_per_move = 800
         self.thinking_loop = 1
@@ -56,7 +56,7 @@ class TrainerConfig:
     def __init__(self):
         self.min_games_to_begin_learn = 200 
         self.min_data_size_to_learn = 0
-        self.cleaning_processes = 4 # RAM explosion...
+        self.cleaning_processes = 4 # RAM explosion... 根据本机配置确定合适的cleaning_processes数目
         self.vram_frac = 1.0
         self.batch_size = 512 # tune this to your gpu memory
         self.epoch_to_checkpoint = 3

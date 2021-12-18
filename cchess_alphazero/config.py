@@ -3,14 +3,16 @@ import getpass
 
 def _project_dir():
     d = os.path.dirname
+    print(f"项目路径: {d(d(os.path.abspath(__file__)))}")
     return d(d(os.path.abspath(__file__)))
 
 
 def _data_dir():
+    print(f"_data_dir文件路径 {os.path.join(_project_dir(), 'data')}")
     return os.path.join(_project_dir(), "data")
 
 class Config:
-    def __init__(self, config_type="mini"):
+    def __init__(self, config_type="normal"):
         self.opts = Options()
         self.resource = ResourceConfig()
         self.internet = InternetConfig()
@@ -30,6 +32,7 @@ class Config:
         self.eval = c.EvaluateConfig()
 
 class ResourceConfig:
+    
     def __init__(self):
         self.project_dir = os.environ.get("PROJECT_DIR", _project_dir())
         self.data_dir = os.environ.get("DATA_DIR", _data_dir())
@@ -70,6 +73,7 @@ class ResourceConfig:
     def create_directories(self):
         dirs = [self.project_dir, self.data_dir, self.model_dir, self.play_data_dir, self.log_dir,
                 self.play_record_dir, self.next_generation_model_dir, self.sl_data_dir]
+        print(f"dirs: {dirs}")
         for d in dirs:
             if not os.path.exists(d):
                 os.makedirs(d)
