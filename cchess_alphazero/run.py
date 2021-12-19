@@ -1,4 +1,5 @@
 import os
+# os.environ['CUDA_VISIBLE_DEVICES'] = '/gpu:0'
 import sys
 import multiprocessing as mp
 
