@@ -115,7 +115,7 @@ class CChessModel:
         if os.path.exists(weight_path):
             m = hashlib.sha256() #使用sha256进行加密
             with open(weight_path, "rb") as f:
-                print(f"以字节方式读取权重文件")
+                print(f"model.py line118 以字节方式读取权重文件")
                 m.update(f.read()) #向 update() 输入字符串对象是不被支持的，因为哈希基于字节而非字符。
             return m.hexdigest() #返回十六进制的文件加密摘要
         return None
@@ -123,13 +123,13 @@ class CChessModel:
     #加载模型文件
     def load(self, config_path, weight_path):
         if os.path.exists(config_path) and os.path.exists(weight_path):
-            logger.debug(f"loading model from {config_path}")
+            logger.debug(f"model.py line126 loading model from {config_path}")
             with open(config_path, "rt") as f:
                 self.model = Model.from_config(json.load(f))
             self.model.load_weights(weight_path)
             self.digest = self.fetch_digest(weight_path)
             self.graph = tf.get_default_graph()
-            logger.debug(f"loaded model digest = {self.digest}")
+            logger.debug(f"model.py line132 loaded model digest = {self.digest}")
             return True
         else:
             logger.debug(f"model files does not exist at {config_path} and {weight_path}")

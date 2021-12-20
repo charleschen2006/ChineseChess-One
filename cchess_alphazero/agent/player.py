@@ -143,7 +143,8 @@ class CChessPlayer:
                 self.buffer_history = self.buffer_history[k:]
             self.run_lock.release()
 
-    #-> str 返回类型为string  #AI自我博弈时使用到的执行逻辑块~~ 
+    #-> str 返回类型为string 比如8979  #AI自我博弈时使用到的执行逻辑块~~ 
+    # 此方法返回就是！！！！！！！！！！！ AI走步 ！！！！！！！！！！！
     def action(self, state, turns, no_act=None, depth=None, infinite=False, hist=None, increase_temp=False) -> str:
         self.all_done.acquire(True)
         self.root_state = state
@@ -194,9 +195,12 @@ class CChessPlayer:
             for act in no_act:
                 policy[self.move_lookup[act]] = 0
 
+        #self.labels为当前盘面所有可选走法
         #随机选取行动?? 从全部的行动空间里面按照, apply_temperature的返回数组中的行动权重,来分配概率选取行动
         # print(f"选取行动空间: {len(range(self.labels_n))}, 选取衰减系数: {len(self.apply_temperature(policy, turns))}, sum: {sum(self.apply_temperature(policy, turns))}")
         my_action = int(np.random.choice(range(self.labels_n), p=self.apply_temperature(policy, turns)))
+        print(f"player.py self.labels: {self.labels}")
+        print(f"player.py line 201最终的my_action为: {my_action}")
         return self.labels[my_action], list(policy)
 
     def MCTS_search(self, state, history=[], is_root_node=False, real_hist=None) -> float:

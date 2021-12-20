@@ -5,6 +5,8 @@ import os
 import numpy as np
 import shutil
 
+from numpy.random.mtrand import f
+
 from cchess_alphazero.config import Config
 from cchess_alphazero.lib.model_helper import load_best_model_weight, need_to_reload_best_model_weight
 from cchess_alphazero.lib.web_helper import http_request, download_file
@@ -61,6 +63,7 @@ class CChessModelAPI:
                         logger.error(f"EOF error: {e}")
                         pipe.close()
                     else:
+                        
                         data.extend(tmp)
                         data_len.append(len(tmp))
                         result_pipes.append(pipe)
@@ -68,13 +71,18 @@ class CChessModelAPI:
                 continue
             data = np.asarray(data, dtype=np.float32)
 
+            # 数据科学组的东西，底下的batch没加条件会报错
             # print(f"data: {data}") #第一维是棋子种类，第二三维是该种类的棋子的行列
             # print(f"result_pipes: {result_pipes}")
             # print(f"data_len: {data_len}")
             # policy_ary, value_ary = self.agent_model.model.predict_on_batch(data)
 
+            # print(f"api.py predict_batch_worker传入的盘面为: {data}") #第一维是棋子种类，第二三维是该种类的棋子的行列
+            # print(f"result_pipes: {result_pipes}")
+            # print(f"data_len: {data_len}")
             with self.agent_model.graph.as_default():
                 policy_ary, value_ary = self.agent_model.model.predict_on_batch(data)
+            # print(f"policy_ary: {policy_ary}, value_ary:{value_ary}")
             buf = []
             k, i = 0, 0
             for p, v in zip(policy_ary, value_ary):

@@ -60,9 +60,9 @@ class PlayWithHuman:
             self.chessman_h += 1
 
     def load_model(self):
-        print(f"加载模型")
+        print(f"play.py line63 加载模型")
         self.model = CChessModel(self.config)
-        print(f"加载的模型为:{self.model}")
+        print(f"play.py line65 加载的模型为:{self.model}")
         if self.config.opts.new or not load_best_model_weight(self.model):
             print(f"opts.new or not best model {self.config.opts.new}")
             self.model.build()
@@ -99,8 +99,11 @@ class PlayWithHuman:
         return screen, board_background, widget_background
 
     def start(self, human_first=True):
+        #重置环境
         self.env.reset()
+        # 加载模型
         self.load_model()
+        # model.get_pipes() --> api.start()predict batch worker线程（伪线程）预测
         self.pipe = self.model.get_pipes()
         self.ai = CChessPlayer(self.config, search_tree=defaultdict(VisitState), pipes=self.pipe,
                               enable_resign=True, debugging=True)
@@ -199,7 +202,7 @@ class PlayWithHuman:
                 labels_n = len(ActionLabelsRed)
                 self.ai.search_results = {}
                 state = self.env.get_state()
-                logger.info(f"state = {state}")
+                logger.info(f"play.py line202 state = {state}")
                 _, _, _, check = senv.done(state, need_check=True)
                 if not check and state in self.history[:-1]:
                     no_act = []
@@ -219,6 +222,8 @@ class PlayWithHuman:
                                     break
                     if no_act:
                         logger.debug(f"no_act = {no_act}")
+
+                # 计算AI需要采取的行动
                 action, policy = self.ai.action(state, self.env.num_halfmoves, no_act)
                 if action is None:
                     logger.info("AI has resigned!")
@@ -226,9 +231,12 @@ class PlayWithHuman:
                 self.history.append(action)
                 if not self.env.red_to_move:
                     action = flip_move(action)
+
+                print(f"play.py line232的self.ai.action返回的action为: ", action)    
+                # print(f"play.py line232的self.ai.action返回的policy为: ", policy)    
                 key = self.env.get_state()
                 p, v = self.ai.debug[key]
-                logger.info(f"check = {check}, NN value = {v:.3f}")
+                logger.info(f"play.py line236 check = {check}, NN value = {v:.3f}")
                 self.nn_value = v
                 logger.info("MCTS results:")
                 self.mcts_moves = {}
@@ -239,7 +247,7 @@ class PlayWithHuman:
                 for move, action_state in self.ai.search_results.items():
                     move_cn = self.env.board.make_single_record(int(move[0]), int(move[1]), int(move[2]), int(move[3]))
                     #------修改电脑决策逻辑-----
-                    logger.info(f"move: {move_cn}-{move}, visit count: {action_state[0]}, Q_value: {action_state[1]:.5f}, Prior: {action_state[2]:.5f}")
+                    logger.info(f"play.py line242 move: {move_cn}-{move}, visit count: {action_state[0]}, Q_value: {action_state[1]:.5f}, Prior: {action_state[2]:.5f}")
                     self.mcts_moves[move_cn] = action_state
                     #当policy分值大于0时, 取最大分值行动
                     if action_state[1]>best_value and action_state[1]>=0:
