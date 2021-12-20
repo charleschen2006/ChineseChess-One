@@ -5,6 +5,8 @@ from threading import Lock, Condition
 import concurrent.futures.thread
 
 import numpy as np
+np.set_printoptions(threshold=np.inf)
+from numpy.random.mtrand import f
 import cchess_alphazero.environment.static_env as senv
 from cchess_alphazero.config import Config
 from cchess_alphazero.environment.lookup_tables import Winner, ActionLabelsRed, flip_move
@@ -130,6 +132,7 @@ class CChessPlayer:
         while not self.job_done:
             if self.pipe.poll(0.001):
                 rets = self.pipe.recv()
+                # print(f"接收到的rets {rets}")
             else:
                 continue
             k = 0
@@ -195,11 +198,11 @@ class CChessPlayer:
             for act in no_act:
                 policy[self.move_lookup[act]] = 0
 
-        #self.labels为当前盘面所有可选走法
+        #self.labels为全部的行走空间. len=2086
         #随机选取行动?? 从全部的行动空间里面按照, apply_temperature的返回数组中的行动权重,来分配概率选取行动
         # print(f"选取行动空间: {len(range(self.labels_n))}, 选取衰减系数: {len(self.apply_temperature(policy, turns))}, sum: {sum(self.apply_temperature(policy, turns))}")
         my_action = int(np.random.choice(range(self.labels_n), p=self.apply_temperature(policy, turns)))
-        print(f"player.py self.labels: {self.labels}")
+        print(f"player.py self.labels:  {len(self.labels)}   {self.labels}")
         print(f"player.py line 201最终的my_action为: {my_action}")
         return self.labels[my_action], list(policy)
 
@@ -462,7 +465,7 @@ class CChessPlayer:
 
     #应用衰减机制, 搜索次数越多, 对应的value值越低
     def apply_temperature(self, policy, turn) -> np.ndarray:
-        
+        print(f"apply_temperature传入的policy:  {len(policy)}   {policy}")
         ## -------调整算法逻辑----------
         tau = 0
         #调整开局逻辑

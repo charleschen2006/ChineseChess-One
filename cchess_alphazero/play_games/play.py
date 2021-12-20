@@ -224,6 +224,7 @@ class PlayWithHuman:
                         logger.debug(f"no_act = {no_act}")
 
                 # 计算AI需要采取的行动
+                print(f"self.ai.action传入的state{state}, 传入的num_halfmoves: {self.env.num_halfmoves}， 传入的no_act: {no_act}")
                 action, policy = self.ai.action(state, self.env.num_halfmoves, no_act)
                 if action is None:
                     logger.info("AI has resigned!")
