@@ -8,8 +8,8 @@ class EvaluateConfig:
         self.tau_decay_rate = 0
         self.noise_eps = 0.2
         self.max_game_length = 100
-        self.max_processes = 2 
-        self.search_threads = 1
+        self.max_processes = 20 
+        self.search_threads = 10
         self.next_generation_replace_rate = 0.55
 
     def update_play_config(self, pc):
@@ -33,8 +33,8 @@ class PlayDataConfig:
 
 class PlayConfig:
     def __init__(self):
-        self.max_processes = 2
-        self.search_threads = 4
+        self.max_processes = 8
+        self.search_threads = 16
         self.vram_frac = 1.0
         self.simulation_num_per_move = 20 # just for debug
         self.c_puct = 1.5

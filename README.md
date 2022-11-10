@@ -90,7 +90,7 @@ Make sure Keras is using Tensorflow and you have Python 3.6.3+.
 #### Self-Play
 
 ```
-python cchess_alphazero/run.py self
+python cchess_alphazero/run.py self --gpu '0'
 ```
 
 When executed, Self-Play will start using BestModel. If the BestModel does not exist, new random model will be created and become BestModel.
@@ -106,7 +106,7 @@ options
 #### Trainer
 
 ```
-python cchess_alphazero/run.py opt
+python cchess_alphazero/run.py opt --gpu '0'
 ```
 
 When executed, Training will start. The current BestModel will be loaded. Trained model will be saved every epoch as new BestModel.
@@ -128,7 +128,7 @@ And access `http://<The Machine IP>:6006/`.
 #### Play with human
 
 ```
-python cchess_alphazero/run.py play
+python cchess_alphazero/run.py play --gpu '0'
 ```
 
 When executed, the BestModel will be loaded to play against human.
@@ -147,7 +147,7 @@ options
 #### Evaluator
 
 ```
-python cchess_alphazero/run.py eval
+python cchess_alphazero/run.py eval --gpu '0'
 ```
 
 When executed, evaluate the NextGenerationModel with the current BestModel. If the NextGenerationModel does not exist, worker will wait until it exists and check every 5 minutes.
@@ -160,7 +160,7 @@ options
 #### Supervised Learning
 
 ```
-python cchess_alphazero/run.py sl
+python cchess_alphazero/run.py sl --gpu '0'
 ```
 
 When executed, Training will start. The current SLBestModel will be loaded. Tranined model will be saved every epoch as new SLBestModel.
