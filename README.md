@@ -90,7 +90,7 @@ Make sure Keras is using Tensorflow and you have Python 3.6.3+.
 #### Self-Play
 
 ```
-python cchess_alphazero/run.py self --gpu '0'
+python cchess_alphazero/run.py self --gpu '0' --type normal
 ```
 
 When executed, Self-Play will start using BestModel. If the BestModel does not exist, new random model will be created and become BestModel.
