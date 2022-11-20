@@ -180,8 +180,8 @@ class OptimizeWorker:
     def send_model(self):
         success = False
         for i in range(3):
-            remote_server = 'root@115.159.183.150'
-            remote_path = '/var/www/alphazero.52coding.com.cn/data/model'
+            remote_server = 'charles@192.168.20.118'
+            remote_path = '/var/www/ttxq.com/data/model/'
             cmd = f'scp {self.config.resource.model_best_weight_path} {remote_server}:{remote_path}'
             ret = subprocess.run(cmd, shell=True)
             if ret.returncode == 0:

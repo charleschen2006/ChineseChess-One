@@ -206,8 +206,8 @@ def test_upload():
     from cchess_alphazero.lib.web_helper import upload_file
     from cchess_alphazero.config import Config
     c = Config('mini')
-    url = 'http://alphazero.52coding.com.cn/api/upload_game_file'
-    path = '/Users/liuhe/Documents/Graduation Project/ChineseChess-AlphaZero/data/play_data/test.json'
+    url = 'http://ttxq.com/api/upload_game_file'
+    path = '/tmp/test.json'
     filename = 'test.json'
     data = {'digest': 'test', 'username': 'test'}
     res = upload_file(url, path, filename=filename, data=data)
@@ -217,8 +217,8 @@ def test_download():
     from cchess_alphazero.lib.web_helper import download_file
     from cchess_alphazero.config import Config
     c = Config('mini')
-    url = 'http://alphazero.52coding.com.cn/model_best_weight.h5'
-    path = '/Users/liuhe/Downloads/model_best_weight.h5'
+    url = 'http://ttxq.com/model_best_weight.h5'
+    path = '/tmp/model_best_weight.h5'
     res = download_file(url, path)
     print(res)
 
@@ -226,7 +226,7 @@ def test_request():
     from cchess_alphazero.lib.web_helper import http_request
     from cchess_alphazero.config import Config
     c = Config('mini')
-    url = 'http://alphazero.52coding.com.cn/api/add_model'
+    url = 'http://ttxq.com/api/add_model'
     digest = 'd6fce85e040a63966fa7651d4a08a7cdba2ef0e5975fc16a6d178c96345547b3'
     elo = 0
     data = {'digest': digest, 'elo': elo}
